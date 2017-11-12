@@ -1,7 +1,6 @@
 <template lang='pug'>
   #app
     v-app(toolbar='')
-      navbar
       home(v-if='this.$store.getters.getUser')
       login(v-if='!this.$store.getters.getUser')
 </template>

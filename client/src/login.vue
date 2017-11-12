@@ -1,4 +1,6 @@
 <template lang="pug">
+div
+    navbar
     .row.container
         .col-xs-12.col-sm-12.col-md-12.col-lg-8.offset-lg-2
             v-form(v-model='valid')
@@ -13,13 +15,15 @@
 <script>
 import Vue from 'vue';
 import Axios from 'axios'
+import Navbar from './navbar.vue'
 export default {
     components: {
+        Navbar
     },
     data () {
         return {
             valid: false,
-            email: 'test@test.com',
+            email: 'pilot',
             emailRules: [
                 (v) => /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(v) || 'E-mail must be valid.'
             ],

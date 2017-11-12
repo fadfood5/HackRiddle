@@ -19,7 +19,8 @@ const
     uid = require('uid');
     ObjectId = require('mongodb').ObjectID,
     MongoClient = require('mongodb').MongoClient,
-    assert = require('assert')
+    assert = require('assert'),
+    googleTranslate = require('google-translate')('AIzaSyDP_ICZEl3iMxsLHr8HvH65kE-LOP2r9cQ')
 ;
 
 app.use(express.static('public'));
@@ -84,14 +85,14 @@ io.on('connection', function(socket) {
     socket.on('CREATE_SESSION', function(val){
         console.log(val);
         let tempid = uid(10);
+        console.log(tempid, val);
         database.collection('sessions').insert({
             sessionid: tempid, user1: val.user1, user2: val.user2
         }, function(err, data) {
             if (err) {
                 console.log(err);
             }else if (data) {
-                console.log(data);
-                io.to(socket.id).emit('CREATE_SESSION_SUCCESS');
+                io.to(socket.id).emit('CREATE_SESSION_SUCCESS', data);
             }
         });
     });
@@ -99,12 +100,11 @@ io.on('connection', function(socket) {
     socket.on('GET_SESSIONS', function(val){
         console.log(val);
         database.collection('sessions').find({
-            $or: {user1: val.user, user2: val.user}
+            $or: [{user1: val.user}, {user2: val.user}]
         }).toArray(function(err, data) {
             if (err) {
                 console.log(err);
             }else if (data) {
-                console.log(data);
                 io.to(socket.id).emit('GET_SESSIONS_SUCCESS', {sessions: data});
             }
         });
@@ -112,14 +112,55 @@ io.on('connection', function(socket) {
 
     socket.on('GET_CONTACTS', function(val){
         console.log(val);
-        database.collection('users').find({
-            email: val.email
+        database.collection('users').findOne({
+            email: val.user
+        }, function(err, data) {
+            if (err) {
+                console.log(err);
+            }else if (data) {
+                delete data['password'];
+                io.to(socket.id).emit('GET_CONTACTS_SUCCESS', {contacts: data.contacts});
+            }
+        });
+    });
+
+    socket.on('GET_SESSION_DATA', function(val){
+        console.log(val);
+        database.collection('texts').find({
+            sessionid: val.sessionid
         }).toArray(function(err, data) {
             if (err) {
                 console.log(err);
             }else if (data) {
-                console.log(data);
-                io.to(socket.id).emit('GET_CONTACTS_SUCCESS', {contacts: data.contacts});
+                io.to(socket.id).emit('GET_SESSION_DATA_SUCCESS', {texts: data});
+            }
+        });
+    });
+
+    socket.on('SEND_MESSAGE', function(val){
+        console.log('val');
+        console.log(val);
+        database.collection('users').findOne({
+            email: val.language
+        }, function(err, data) {
+            if (err) {
+                console.log(err);
+            }else if (data) {
+                console.log('got translate');
+                console.log(data.lang);
+                googleTranslate.translate(val.content, data.lang, function(err2, translation) {
+                    console.log(translation.translatedText);
+                    val.translation = translation.translatedText;
+                    val.showtranslation = true;
+                    database.collection('texts').insert(val, function(err3, data2) {
+                        if (err3) {
+                            console.log(err3);
+                        }else if (data2) {
+                            console.log(data2);
+                            io.to(socket.id).emit('SEND_MESSAGE_SUCCESS', {content: data2});
+                        }
+                    });
+                });
             }
         });
     });
